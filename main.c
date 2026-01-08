@@ -421,31 +421,27 @@ void PollingTask(void *argument)
 	_sPollingParameters	sDeviceIdParams		= { 2, 300, 0};
 	_sPollingParameters	sDeviceNameParams	= { 3, 180, 0};
 
-//	_sPollingParameters	sVersionParams		= {1, 60, 0};
-//		_sPollingParameters	sDeviceIdParams		= { 2, 30, 0};
-//		_sPollingParameters	sDeviceNameParams	= { 3, 18, 0};
-
 	TickType_t xCurrentTime;
 
 	InitQueue(&pBufferQueue);
-	bool bSet = true;
+	bool bSet = true;	//variable used to set param testing
 
 	/* Infinite loop */
 	for (;;) {
 		xCurrentTime = xTaskGetTickCount();
 		uint32_t unTimeinSeconds = xCurrentTime / configTICK_RATE_HZ;
 
-		//set test
-		if(bSet){
-		uint8_t ucParamId = 3;
-		uint8_t ucParameterBuffer[] = {"SETT"};
-		uint8_t ucParamLength = 3;
-		uint8_t ucTLVSetPacketBuffer[64] = {0};
-		CreateSetPacket(ucParamId, ucParameterBuffer,ucParamLength, ucTLVSetPacketBuffer);
-		PushBufferToQueue(&pBufferQueue
-				, ucTLVSetPacketBuffer, ucTLVSetPacketBuffer[1]+2);
-		bSet = false;
-		}
+//		//set test // this is commented due to some issue
+//		if(bSet){
+//		uint8_t ucParamId = 3;
+//		uint8_t ucParameterBuffer[] = {"SETT"};
+//		uint8_t ucParamLength = 3;
+//		uint8_t ucTLVSetPacketBuffer[64] = {0};
+//		CreateSetPacket(ucParamId, ucParameterBuffer,ucParamLength, ucTLVSetPacketBuffer);
+//		PushBufferToQueue(&pBufferQueue
+//				, ucTLVSetPacketBuffer, ucTLVSetPacketBuffer[1]+2);
+//		bSet = false;
+//		}
 
 
 		if (sVersionParams.ulLastPollingTime == 0

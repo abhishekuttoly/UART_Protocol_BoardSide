@@ -36,9 +36,6 @@ bool ParsePacket(uint8_t ucUARTPacket[], _sPacketData *psData)
 	psData->ucRequestType = ucUARTPacket[0];
 	psData->ucLength = ucUARTPacket[1];
 
-printf("Type Parsed = %d\n", ucUARTPacket[0]);
-fflush(stdout);
-
 	psData->ucNumberOfTLVs = GetTLVCount(ucUARTPacket);
 	uint8_t ucIndex = 2;
 	uint8_t ucCount = 0;

@@ -95,7 +95,7 @@ void CreateTLVBuffer(_sTLVParams *psTLVParam, uint8_t ucTLVBuffer[], uint8_t *uc
 	memcpy(ucTLVBuffer+ucIndex, psTLVParam->ucValueBuffer, psTLVParam->ucLength);
 	}
 	else{
-		ucTLVBuffer[2] = psTLVParam->ucValueBuffer[0];
+		ucTLVBuffer[ucIndex] = psTLVParam->ucValueBuffer[0]; // since the length is 1 , it  assign to the buffer.
 	}
 	ucIndex += psTLVParam->ucLength;
 	*ucLength += ucIndex;
