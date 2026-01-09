@@ -48,7 +48,7 @@ bool ParsePacket(uint8_t ucUARTPacket[], _sPacketData *psData)
 		psData->psTlv[ucCount].psTlvParam.ucLength = ucUARTPacket[ucIndex];
 		ucIndex++;
 
-		if(psData->psTlv[ucCount].psTlvParam.ucLength == 0)
+		if(psData->psTlv[ucCount].psTlvParam.ucLength == 0) // Invalid length
 		{
 			return false;
 		}
@@ -62,13 +62,14 @@ bool ParsePacket(uint8_t ucUARTPacket[], _sPacketData *psData)
 			ucIndex += psData->psTlv[ucCount].psTlvParam.ucLength;
 		}
 
-		if(ucIndex > psData->ucLength +2)
+		if(ucIndex > psData->ucLength +2) // Invalid packet
 		{
 			return false;
 		}
 
 		ucCount++;
 	}
+
 	return true;
 }
 

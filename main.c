@@ -70,7 +70,7 @@ const osThreadAttr_t CreatePacket_attributes = {
 osThreadId_t UARTTaskHandle;
 const osThreadAttr_t UARTTask_attributes = {
   .name = "UARTTask",
-  .stack_size = 2048 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 /* USER CODE BEGIN PV */
@@ -425,23 +425,36 @@ void PollingTask(void *argument)
 
 	InitQueue(&pBufferQueue);
 	bool bSet = true;	//variable used to set param testing
+	bool bSetPC = true;
 
 	/* Infinite loop */
 	for (;;) {
 		xCurrentTime = xTaskGetTickCount();
 		uint32_t unTimeinSeconds = xCurrentTime / configTICK_RATE_HZ;
 
-//		//set test // this is commented due to some issue
-//		if(bSet){
-//		uint8_t ucParamId = 3;
-//		uint8_t ucParameterBuffer[] = {"SETT"};
-//		uint8_t ucParamLength = 3;
-//		uint8_t ucTLVSetPacketBuffer[64] = {0};
-//		CreateSetPacket(ucParamId, ucParameterBuffer,ucParamLength, ucTLVSetPacketBuffer);
-//		PushBufferToQueue(&pBufferQueue
-//				, ucTLVSetPacketBuffer, ucTLVSetPacketBuffer[1]+2);
-//		bSet = false;
-//		}
+//		//set command testing code
+		if(bSet && unTimeinSeconds >= 330){
+		uint8_t ucParamId = 3;
+		uint8_t ucParameterBuffer[] = {"SET"};
+		uint8_t ucParamLength = strlen(ucParameterBuffer);
+		uint8_t ucTLVSetPacketBuffer[64] = {0};
+		CreateSetPacket(ucParamId, ucParameterBuffer,ucParamLength, ucTLVSetPacketBuffer);
+		PushBufferToQueue(&pBufferQueue
+				, ucTLVSetPacketBuffer, ucTLVSetPacketBuffer[1]+2);
+		bSet = false;
+		}
+
+		if (bSetPC && unTimeinSeconds >= 600) {
+			uint8_t ucParamId = 3;
+			uint8_t ucParameterBuffer[] = { "PC" };
+			uint8_t ucParamLength = strlen(ucParameterBuffer);
+			uint8_t ucTLVSetPacketBuffer[64] = { 0 };
+			CreateSetPacket(ucParamId, ucParameterBuffer, ucParamLength,
+					ucTLVSetPacketBuffer);
+			PushBufferToQueue(&pBufferQueue, ucTLVSetPacketBuffer,
+					ucTLVSetPacketBuffer[1] + 2);
+			bSetPC = false;
+		}
 
 
 		if (sVersionParams.ulLastPollingTime == 0
@@ -467,7 +480,6 @@ void PollingTask(void *argument)
 					ucDeviceNameGetPacketBuffer);
 			PushBufferToQueue(&pBufferQueue, ucDeviceNameGetPacketBuffer, 5);
 			sDeviceNameParams.ulLastPollingTime = unTimeinSeconds;
-//			bSet = true;
 			}
 		osDelay(5000);
 	}
@@ -500,10 +512,8 @@ void CommunicationTask(void *argument)
 
 			if (eTransmitStatus != HAL_OK) {
 				printf("ERROR: %d UART transmit failed\n", __LINE__);
-								fflush(stdout);
+				fflush(stdout);
 			}
-
-
 
 			HAL_UART_AbortReceive(&huart3);
 			HAL_Delay(10);
@@ -515,23 +525,17 @@ void CommunicationTask(void *argument)
 
 			if (eReceiveStatus == HAL_OK) {
 				_sPacketData sDataPacket;
-				printf("receive success = %d\n", ucRxBuffer[0]);
-				for(int i = 0;i<12;i++)
-									{
-										printf("%02x ", ucRxBuffer[i]);
-									}
+				printf("Received Data: ");
+				for (int i = 0; i < 12; i++) {
+					printf("%02x ", ucRxBuffer[i]);
+				}
 				printf("\n");
 				fflush(stdout);
+
 				if (ParsePacket(ucRxBuffer, &sDataPacket))
 				{
-					printf("parse success\n");
-					printf("type = %d\n", sDataPacket.ucRequestType);
-
-									fflush(stdout);
 					if (sDataPacket.ucRequestType == 1)
 					{
-						printf("request type 1\n");
-										fflush(stdout);
 						if (sDataPacket.ucNumberOfTLVs == 0)
 						{
 							printf("ERROR: %d Invalid packet\n", __LINE__);
@@ -539,8 +543,6 @@ void CommunicationTask(void *argument)
 						}
 						else
 						{
-							printf("tlv\n");
-											fflush(stdout);
 							uint8_t ucIndex;
 							uint8_t ucTotalTLVs = sDataPacket.ucNumberOfTLVs;
 
@@ -550,8 +552,6 @@ void CommunicationTask(void *argument)
 
 								if (ucParameter == TYPE_CHAR)
 								{
-									printf("char\n");
-													fflush(stdout);
 									uint8_t ucCharValue[64];
 									memcpy(ucCharValue,
 											sDataPacket.psTlv[ucIndex + 1].psTlvParam.ucValueBuffer,
@@ -567,13 +567,11 @@ void CommunicationTask(void *argument)
 								}
 								else
 								{
-									printf("int\n");
-													fflush(stdout);
 									uint16_t unIntValue;
 									memcpy(&unIntValue,
 											sDataPacket.psTlv[ucIndex + 1].psTlvParam.ucValueBuffer,
 											sDataPacket.psTlv[ucIndex + 1].psTlvParam.ucLength);
-									printf("Value = %d\n", unIntValue);
+									printf("Response value = %d\n", unIntValue);
 									fflush(stdout);
 								}
 							}
@@ -588,13 +586,13 @@ void CommunicationTask(void *argument)
 				else
 				{
 					printf("parse failed\n");
-									fflush(stdout);
+					fflush(stdout);
 				}
 			}
 			else
 			{
 				printf("ERROR: %d Receive timeout\n");
-								fflush(stdout);
+				fflush(stdout);
 			}
 		}
 		osDelay(1000);
