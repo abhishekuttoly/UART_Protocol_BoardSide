@@ -27,76 +27,84 @@
 
 //***************************** Function Definitions ******************************
 //******************************.FUNCTION_HEADER.******************************
-//Purpose : To create get command packet
-//Inputs  : ucParamId - Parameter ID
-//Outputs : ucTLVGetPacketBuffer - Get packet buffer
+//Purpose : To create get response packet
+//Inputs  : psResponseValue - structure holding packet data
+//Inputs  : ucNumberOfItems - Number of TLVs
+//Inputs  : ucLengthOfResponseValue - Length of response value buffer
+//Outputs : pucResponsePacket - Response packet buffer
 //Return  : none
 //**********************************************************************************
-void CreateGetPacket(uint8_t ucParamId, uint8_t ucTLVGetPacketBuffer[])
-{
-	_sTLVParams psTLVParam;
-	psTLVParam.ucType = TYPE_PARAMETER;
-	psTLVParam.ucLength = VALUE_LENGTH;
-	psTLVParam.ucValueBuffer[0] = ucParamId;
-	uint8_t ucLengthOfPacket = 0;
-	CreateTLVBuffer(&psTLVParam, ucTLVGetPacketBuffer+2, &ucLengthOfPacket);
-	ucTLVGetPacketBuffer[0] = GET_COMMAND;
-	ucTLVGetPacketBuffer[1] = ucLengthOfPacket;
+void UARTPacketBuilderCreateGetResponsePacket(_sResponseValue *psResponseValue, uint8_t ucNumberOfItems, uint8_t ucLengthOfResponseValue, uint8_t pucResponsePacket[])
+ {
+     uint8_t ucIndex = 2;            // Start after total length byte of the packet
+     uint8_t ucCounter = 0;
+     uint8_t ucTotalLength = 0;
+
+     while(ucCounter < ucNumberOfItems)
+     {
+         _sTLVParams sTLVParam;
+
+         sTLVParam.ucType = 3;       // parameter
+         sTLVParam.ucLength = 1;     // since parameter, length = 1
+         sTLVParam.ucValueBuffer[0] = psResponseValue->ucParamId;
+         uint8_t ucLength = 0;
+         ucLength = UARTPacketBuilderCreateTLV(&sTLVParam, pucResponsePacket+ucIndex);
+
+         ucTotalLength += ucLength;
+
+         // TLV holds response data
+         _sTLVParams sResponseTLV;
+         sResponseTLV.ucType = psResponseValue->ucResponseType;
+         sResponseTLV.ucLength = ucLengthOfResponseValue;
+
+         memcpy(sResponseTLV.ucValueBuffer, psResponseValue->ucValueBuffer, sResponseTLV.ucLength);
+
+         ucIndex += ucLength;
+         ucLength = 0;
+         ucLength = UARTPacketBuilderCreateTLV(&sResponseTLV, pucResponsePacket+ucIndex);
+         ucIndex += ucLength;
+         ucTotalLength += ucLength;
+         ucCounter++;
+     }
+     pucResponsePacket[0] = 1;
+     pucResponsePacket[1] = ucTotalLength;
 }
 
 //******************************.FUNCTION_HEADER.******************************
-//Purpose : To create set command packet
-//Inputs  : ucParamId - Parameter ID
-//Inputs  : ucParameterBuffer - Parameter value to set
-//Inputs  : ucParamLength - Length of parameter
-//Outputs : ucTLVSetPacketBuffer - Set packet buffer
+//Purpose : To create set response  packet
+//Inputs  : ucParameterID - Parameter ID
+//Outputs : ucParameterID - Set response buffer
 //Return  : None
 //**********************************************************************************
-void CreateSetPacket(uint8_t ucParamId, uint8_t ucParameterBuffer[], uint8_t ucParamLength, uint8_t ucTLVSetPacketBuffer[])
-{
-	_sTLVParams psTLVParam;
-	psTLVParam.ucType = TYPE_PARAMETER;
-	psTLVParam.ucLength = VALUE_LENGTH;
-	psTLVParam.ucValueBuffer[0]=ucParamId;
-	uint8_t ucLengthOfPacket = 0;
-	uint8_t ucTLVLength = 0;
+void UARTPacketBuilderCreateSetResponsePacket(uint8_t ucParameterID, uint8_t pucResponsePacket[])
+ {
+     _sTLVParams sTLVParam;
 
-	CreateTLVBuffer(&psTLVParam, ucTLVSetPacketBuffer+2, &ucTLVLength);
+     sTLVParam.ucType = 3;   //parameter
+     sTLVParam.ucLength = 1;
+     sTLVParam.ucValueBuffer[0] = ucParameterID;
 
-	ucLengthOfPacket += ucTLVLength;
+     uint8_t ucLength = 0;
+     ucLength = UARTPacketBuilderCreateTLV(&sTLVParam, pucResponsePacket+2);
 
-	_sTLVParams psSetParamTLV;
-	psSetParamTLV.ucType = TYPE_CHAR;
-	psSetParamTLV.ucLength = ucParamLength;
-	memcpy(psSetParamTLV.ucValueBuffer, ucParameterBuffer, psSetParamTLV.ucLength);
-	ucTLVLength = 0;
-	CreateTLVBuffer(&psSetParamTLV, ucTLVSetPacketBuffer+(ucLengthOfPacket+2), &ucTLVLength);
-	ucLengthOfPacket += ucTLVLength;
-
-	ucTLVSetPacketBuffer[0] = SET_COMMAND;
-	ucTLVSetPacketBuffer[1] = ucLengthOfPacket;
-}
+     pucResponsePacket[0] = 2;   //set
+     pucResponsePacket[1] = ucLength;
+ }
 
 //******************************.FUNCTION_HEADER.******************************
 //Purpose : To create TLV buffer
 //Inputs  : psTLVParam - Structure includes Type, length and value
-//Outputs  : ucTLVBuffer - TLV buffer
-//Outputs : ucLength - Length of TLV buffer
+//Outputs : ucTLVBuffer - TLV buffer
 //Return  : true if successful, false otherwise
 //**********************************************************************************
-void CreateTLVBuffer(_sTLVParams *psTLVParam, uint8_t ucTLVBuffer[], uint8_t *ucLength)
+uint8_t UARTPacketBuilderCreateTLV(_sTLVParams *psTLVParam, uint8_t ucTLVBuffer[])
 {
-	uint8_t ucIndex = 0;
-	ucTLVBuffer[0] = psTLVParam->ucType;
-	ucIndex ++;
-	ucTLVBuffer[1] = psTLVParam->ucLength;
-	ucIndex ++;
-	if(psTLVParam->ucLength != 1){
-	memcpy(ucTLVBuffer+ucIndex, psTLVParam->ucValueBuffer, psTLVParam->ucLength);
-	}
-	else{
-		ucTLVBuffer[ucIndex] = psTLVParam->ucValueBuffer[0]; // since the length is 1 , it  assign to the buffer.
-	}
-	ucIndex += psTLVParam->ucLength;
-	*ucLength += ucIndex;
+      uint8_t ucIndex = 0;
+      ucTLVBuffer[0] = psTLVParam->ucType;
+  	ucIndex++;
+      ucTLVBuffer[1] = psTLVParam->ucLength;
+  	ucIndex++;
+  	memcpy(ucTLVBuffer+ucIndex, psTLVParam->ucValueBuffer, psTLVParam->ucLength);
+  	ucIndex += psTLVParam->ucLength;
+      return ucIndex;
 }

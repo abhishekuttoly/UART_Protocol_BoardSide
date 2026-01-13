@@ -42,9 +42,9 @@ typedef struct __sPacketData{
 //**************************** Forward Declarations ***************************
 
 //***************************** Function Declaration **************************
-bool ParsePacket(uint8_t ucUARTPacket[], _sPacketData *psData);
-uint8_t GetTLVCount(uint8_t ucUARTPacket[]);
-void ParseTLV(uint8_t *psTLVBuffer, _sTLVParams *psTLVData);
+bool UARTPacketParserParsePacket(uint8_t ucUARTPacket[], _sPacketData *psData);
+uint8_t UARTPacketParserGetTLVCount(uint8_t ucUARTPacket[]);
+void UARTPacketParserParseTLV(uint8_t *psTLVBuffer, _sTLVParams *psTLVData);
 //*********************** Inline Method Implementations ***********************
 
 #endif /* INC_UART_PACKET_PARSER_H_ */
